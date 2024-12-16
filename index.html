@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>WebRTC File Transfer (PWA)</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
+  <style>
+    #qrCode, #videoScan { margin: 10px 0; }
+  </style>
+</head>
+<body>
+  <h1>WebRTC File Transfer (PWA)</h1>
+  <div>
+    <h3>Create Connection</h3>
+    <button id="createOffer">Generate QR Code</button>
+    <canvas id="qrCode"></canvas>
+  </div>
+  <div>
+    <h3>Scan Connection</h3>
+    <div id="videoScan" style="width: 300px; height: 300px;"></div>
+    <input type="text" id="remoteSDP" placeholder="Or paste QR code content">
+    <button id="connect">Connect</button>
+  </div>
+  <div>
+    <h3>File Transfer</h3>
+    <input type="file" id="fileInput">
+    <button id="sendFile">Send File</button>
+    <h4>Received File:</h4>
+    <a id="downloadLink" style="display:none;">Download File</a>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
