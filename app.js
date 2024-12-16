@@ -39,31 +39,47 @@ async function createOffer() {
 
     // Create Data Channel
     dataChannel = peerConnection.createDataChannel('chat');
+    logMessage(`Data channel state: ${dataChannel.readyState} (Offerer).`);
+
     dataChannel.onopen = () => {
-      logMessage('Data channel is open.');
+      logMessage('Data channel is open (Offerer).');
       sendMessageBtn.disabled = false;
       sendMessageBtn.style.backgroundColor = '#4CAF50'; // Green for ready
     };
+
     dataChannel.onclose = () => {
-      logMessage('Data channel is closed.', 'warning');
+      logMessage('Data channel is closed (Offerer).', 'warning');
       sendMessageBtn.disabled = true;
       sendMessageBtn.style.backgroundColor = '#d9534f'; // Red for closed
+    };
+
+    dataChannel.onerror = (error) => {
+      logMessage(`Data channel error: ${error.message} (Offerer).`, 'error');
     };
 
     // Log connection states
     peerConnection.oniceconnectionstatechange = () => {
       logMessage(`ICE connection state: ${peerConnection.iceConnectionState}`);
     };
+
     peerConnection.onconnectionstatechange = () => {
       logMessage(`Peer connection state: ${peerConnection.connectionState}`);
     };
 
+    // Log ICE candidates and errors
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         logMessage(`New ICE candidate: ${event.candidate.candidate}`);
       } else {
         logMessage('All ICE candidates have been sent.');
       }
+    };
+
+    peerConnection.onicecandidateerror = (event) => {
+      logMessage(
+        `ICE candidate error: code=${event.errorCode}, address=${event.address}, port=${event.port}`,
+        'error'
+      );
     };
 
     const offer = await peerConnection.createOffer();
@@ -93,16 +109,22 @@ async function handleRemoteSDP(remoteSDP) {
     // Listen for Data Channel creation
     peerConnection.ondatachannel = (event) => {
       dataChannel = event.channel;
+      logMessage(`Data channel state: ${dataChannel.readyState} (Answerer).`);
 
       dataChannel.onopen = () => {
-        logMessage('Data channel is open.');
+        logMessage('Data channel is open (Answerer).');
         sendMessageBtn.disabled = false;
         sendMessageBtn.style.backgroundColor = '#4CAF50'; // Green for ready
       };
+
       dataChannel.onclose = () => {
-        logMessage('Data channel is closed.', 'warning');
+        logMessage('Data channel is closed (Answerer).', 'warning');
         sendMessageBtn.disabled = true;
         sendMessageBtn.style.backgroundColor = '#d9534f'; // Red for closed
+      };
+
+      dataChannel.onerror = (error) => {
+        logMessage(`Data channel error: ${error.message} (Answerer).`, 'error');
       };
 
       dataChannel.onmessage = (event) => {
@@ -115,16 +137,25 @@ async function handleRemoteSDP(remoteSDP) {
     peerConnection.oniceconnectionstatechange = () => {
       logMessage(`ICE connection state: ${peerConnection.iceConnectionState}`);
     };
+
     peerConnection.onconnectionstatechange = () => {
       logMessage(`Peer connection state: ${peerConnection.connectionState}`);
     };
 
+    // Log ICE candidates and errors
     peerConnection.onicecandidate = (event) => {
       if (event.candidate) {
         logMessage(`New ICE candidate: ${event.candidate.candidate}`);
       } else {
         logMessage('All ICE candidates have been sent.');
       }
+    };
+
+    peerConnection.onicecandidateerror = (event) => {
+      logMessage(
+        `ICE candidate error: code=${event.errorCode}, address=${event.address}, port=${event.port}`,
+        'error'
+      );
     };
 
     logMessage('Received offer SDP: ' + remoteSDP);
