@@ -17,6 +17,8 @@ let receiveBuffer = [];
 let receivedSize = 0;
 
 // Generate WebRTC offer and display QR code
+const qrCodeContent = document.getElementById('qrCodeContent'); // Add this element in your HTML
+
 async function createOffer() {
   peerConnection = new RTCPeerConnection(config);
   dataChannel = peerConnection.createDataChannel('file');
@@ -25,11 +27,18 @@ async function createOffer() {
   const offer = await peerConnection.createOffer();
   await peerConnection.setLocalDescription(offer);
 
-  QRCode.toCanvas(qrCodeCanvas, JSON.stringify(peerConnection.localDescription), (err) => {
+  const offerSDP = JSON.stringify(peerConnection.localDescription);
+
+  // Generate the QR Code
+  QRCode.toCanvas(qrCodeCanvas, offerSDP, (err) => {
     if (err) console.error(err);
     console.log('QR Code generated');
   });
+
+  // Display the QR code content
+  qrCodeContent.textContent = offerSDP;
 }
+
 
 // Handle incoming SDP from QR code or input
 async function handleRemoteSDP(remoteSDP) {
