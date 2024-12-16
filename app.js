@@ -36,8 +36,9 @@ function logMessage(message, type = 'info') {
 async function createOffer() {
   try {
     peerConnection = new RTCPeerConnection(config);
-    dataChannel = peerConnection.createDataChannel('chat');
 
+    // Create Data Channel
+    dataChannel = peerConnection.createDataChannel('chat');
     dataChannel.onopen = () => {
       logMessage('Data channel is open.');
       sendMessageBtn.disabled = false;
@@ -47,6 +48,22 @@ async function createOffer() {
       logMessage('Data channel is closed.', 'warning');
       sendMessageBtn.disabled = true;
       sendMessageBtn.style.backgroundColor = '#d9534f'; // Red for closed
+    };
+
+    // Log connection states
+    peerConnection.oniceconnectionstatechange = () => {
+      logMessage(`ICE connection state: ${peerConnection.iceConnectionState}`);
+    };
+    peerConnection.onconnectionstatechange = () => {
+      logMessage(`Peer connection state: ${peerConnection.connectionState}`);
+    };
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        logMessage(`New ICE candidate: ${event.candidate.candidate}`);
+      } else {
+        logMessage('All ICE candidates have been sent.');
+      }
     };
 
     const offer = await peerConnection.createOffer();
@@ -72,18 +89,20 @@ async function createOffer() {
 async function handleRemoteSDP(remoteSDP) {
   try {
     peerConnection = new RTCPeerConnection(config);
+
+    // Listen for Data Channel creation
     peerConnection.ondatachannel = (event) => {
       dataChannel = event.channel;
 
       dataChannel.onopen = () => {
         logMessage('Data channel is open.');
         sendMessageBtn.disabled = false;
-        sendMessageBtn.style.backgroundColor = '#4CAF50';
+        sendMessageBtn.style.backgroundColor = '#4CAF50'; // Green for ready
       };
       dataChannel.onclose = () => {
         logMessage('Data channel is closed.', 'warning');
         sendMessageBtn.disabled = true;
-        sendMessageBtn.style.backgroundColor = '#d9534f';
+        sendMessageBtn.style.backgroundColor = '#d9534f'; // Red for closed
       };
 
       dataChannel.onmessage = (event) => {
@@ -92,13 +111,31 @@ async function handleRemoteSDP(remoteSDP) {
       };
     };
 
+    // Log connection states
+    peerConnection.oniceconnectionstatechange = () => {
+      logMessage(`ICE connection state: ${peerConnection.iceConnectionState}`);
+    };
+    peerConnection.onconnectionstatechange = () => {
+      logMessage(`Peer connection state: ${peerConnection.connectionState}`);
+    };
+
+    peerConnection.onicecandidate = (event) => {
+      if (event.candidate) {
+        logMessage(`New ICE candidate: ${event.candidate.candidate}`);
+      } else {
+        logMessage('All ICE candidates have been sent.');
+      }
+    };
+
+    logMessage('Received offer SDP: ' + remoteSDP);
+
     const remoteDescription = new RTCSessionDescription(JSON.parse(remoteSDP));
     await peerConnection.setRemoteDescription(remoteDescription);
 
     const answer = await peerConnection.createAnswer();
     await peerConnection.setLocalDescription(answer);
 
-    logMessage('WebRTC connection established successfully.');
+    logMessage('Answer SDP created: ' + JSON.stringify(peerConnection.localDescription));
   } catch (error) {
     logMessage('Error handling remote SDP: ' + error.message, 'error');
   }
@@ -113,7 +150,7 @@ function initializeScanner() {
     { facingMode: 'environment' },
     {
       fps: 5,
-      qrbox: { width: 250, height: 250 }
+      qrbox: { width: 250, height: 250 },
     },
     (decodedText) => {
       remoteSDPInput.value = decodedText;
@@ -126,10 +163,12 @@ function initializeScanner() {
         lastErrorMessage = errorMessage;
       }
     }
-  ).catch((error) => logMessage('Error initializing scanner: ' + error.message, 'error'));
+  ).catch((error) => {
+    logMessage('Error initializing QR Code scanner: ' + error.message, 'error');
+  });
 }
 
-// Send a message
+// Send a message via the Data Channel
 function sendMessage() {
   if (dataChannel && dataChannel.readyState === 'open') {
     dataChannel.send(messageInput.value);
@@ -140,7 +179,7 @@ function sendMessage() {
   }
 }
 
-// Copy QR Code content
+// Copy QR Code content to clipboard
 function copyQrCodeContent() {
   if (qrCodeContent.value) {
     navigator.clipboard.writeText(qrCodeContent.value)
