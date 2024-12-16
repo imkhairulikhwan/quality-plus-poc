@@ -6,10 +6,23 @@
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
     #qrCode, #videoScan { margin: 10px 0; }
+    #logContainer {
+      margin-top: 20px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      background-color: #f9f9f9;
+      height: 150px;
+      overflow-y: auto;
+    }
+    #logContainer p {
+      margin: 0;
+      font-size: 14px;
+    }
   </style>
 </head>
 <body>
   <h1>WebRTC with QR Code</h1>
+
   <div>
     <h3>Create Connection</h3>
     <button id="createOffer">Generate QR Code</button>
@@ -17,19 +30,27 @@
     <textarea id="qrCodeContent" placeholder="Generated QR Code Content" readonly></textarea>
     <button id="copyQrCodeContent">Copy to Clipboard</button>
   </div>
+
   <div>
     <h3>Scan Connection</h3>
     <div id="videoScan" style="width: 300px; height: 300px;"></div>
     <input type="text" id="remoteSDP" placeholder="Or paste QR code content">
     <button id="connect">Connect</button>
   </div>
+
   <div>
     <h3>Data Transfer</h3>
     <textarea id="messageInput" placeholder="Type a message"></textarea>
-    <button id="sendMessage">Send</button>
+    <button id="sendMessage" disabled>Send</button>
     <h4>Received:</h4>
     <p id="receivedMessage"></p>
   </div>
+
+  <div id="logContainer">
+    <h3>Logs</h3>
+    <p id="logContent">No logs yet...</p>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

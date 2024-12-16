@@ -1,3 +1,4 @@
+// DOM Elements
 const qrCodeCanvas = document.getElementById('qrCode');
 const qrCodeContent = document.getElementById('qrCodeContent');
 const createOfferBtn = document.getElementById('createOffer');
@@ -8,78 +9,117 @@ const messageInput = document.getElementById('messageInput');
 const receivedMessage = document.getElementById('receivedMessage');
 const videoScan = document.getElementById('videoScan');
 const copyQrCodeContentBtn = document.getElementById('copyQrCodeContent');
+const logContent = document.getElementById('logContent');
 
 let peerConnection;
 let dataChannel;
 const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
+// Utility: Log messages to the interface
+function logMessage(message, type = 'info') {
+  const logEntry = document.createElement('p');
+  logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+
+  // Style logs based on type
+  if (type === 'error') logEntry.style.color = 'red';
+  if (type === 'warning') logEntry.style.color = 'orange';
+
+  logContent.appendChild(logEntry);
+  logContent.parentElement.scrollTop = logContent.scrollHeight;
+}
+
 // Generate WebRTC offer and display it as a QR code and string
 async function createOffer() {
-  peerConnection = new RTCPeerConnection(config);
-  dataChannel = peerConnection.createDataChannel('chat');
-  dataChannel.onmessage = (event) => {
-    receivedMessage.textContent = event.data;
-  };
+  try {
+    peerConnection = new RTCPeerConnection(config);
+    dataChannel = peerConnection.createDataChannel('chat');
 
-  const offer = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(offer);
+    // Log data channel events
+    dataChannel.onopen = () => {
+      logMessage('Data channel is open.');
+      sendMessageBtn.disabled = false; // Enable Send button
+    };
+    dataChannel.onclose = () => {
+      logMessage('Data channel is closed.', 'warning');
+      sendMessageBtn.disabled = true; // Disable Send button
+    };
 
-  const offerSDP = JSON.stringify(peerConnection.localDescription);
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
 
-  // Generate the QR Code
-  QRCode.toCanvas(qrCodeCanvas, offerSDP, (err) => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    console.log('QR Code generated');
-  });
+    const offerSDP = JSON.stringify(peerConnection.localDescription);
 
-  // Display the QR code content as a string
-  qrCodeContent.value = offerSDP;
+    // Generate the QR Code
+    QRCode.toCanvas(qrCodeCanvas, offerSDP, (err) => {
+      if (err) {
+        logMessage('Failed to generate QR Code: ' + err.message, 'error');
+        return;
+      }
+      logMessage('QR Code generated successfully.');
+    });
+
+    // Display the QR code content as a string
+    qrCodeContent.value = offerSDP;
+  } catch (error) {
+    logMessage('Error creating WebRTC offer: ' + error.message, 'error');
+  }
 }
 
 // Handle remote SDP (from scanned QR code or input)
 async function handleRemoteSDP(remoteSDP) {
-  peerConnection = new RTCPeerConnection(config);
-  peerConnection.ondatachannel = (event) => {
-    dataChannel = event.channel;
-    dataChannel.onmessage = (event) => {
-      receivedMessage.textContent = event.data;
+  try {
+    peerConnection = new RTCPeerConnection(config);
+
+    // Listen for data channel creation
+    peerConnection.ondatachannel = (event) => {
+      dataChannel = event.channel;
+
+      dataChannel.onopen = () => {
+        logMessage('Data channel is open.');
+        sendMessageBtn.disabled = false; // Enable Send button
+      };
+      dataChannel.onclose = () => {
+        logMessage('Data channel is closed.', 'warning');
+        sendMessageBtn.disabled = true; // Disable Send button
+      };
+
+      dataChannel.onmessage = (event) => {
+        receivedMessage.textContent = event.data;
+        logMessage('Message received: ' + event.data);
+      };
     };
-  };
 
-  const remoteDescription = new RTCSessionDescription(JSON.parse(remoteSDP));
-  await peerConnection.setRemoteDescription(remoteDescription);
+    const remoteDescription = new RTCSessionDescription(JSON.parse(remoteSDP));
+    await peerConnection.setRemoteDescription(remoteDescription);
 
-  const answer = await peerConnection.createAnswer();
-  await peerConnection.setLocalDescription(answer);
-  console.log('Send this back:', JSON.stringify(peerConnection.localDescription));
+    const answer = await peerConnection.createAnswer();
+    await peerConnection.setLocalDescription(answer);
+
+    logMessage('WebRTC connection established successfully.');
+  } catch (error) {
+    logMessage('Error handling remote SDP: ' + error.message, 'error');
+  }
 }
 
 // Send a message via the data channel
 function sendMessage() {
   if (dataChannel && dataChannel.readyState === 'open') {
     dataChannel.send(messageInput.value);
+    logMessage('Message sent: ' + messageInput.value);
     messageInput.value = ''; // Clear the input field after sending
   } else {
-    console.error('Data channel is not open');
+    logMessage('Data channel is not open yet.', 'error');
   }
 }
 
-// Function to copy QR Code content to clipboard
+// Copy QR Code content to clipboard
 function copyQrCodeContent() {
   if (qrCodeContent.value) {
     navigator.clipboard.writeText(qrCodeContent.value)
-      .then(() => {
-        console.log('QR code content copied to clipboard');
-        alert('QR Code content copied to clipboard!');
-      })
-      .catch((err) => {
-        console.error('Failed to copy QR code content: ', err);
-      });
+      .then(() => logMessage('QR code content copied to clipboard.'))
+      .catch((err) => logMessage('Failed to copy QR code content: ' + err.message, 'error'));
   } else {
-    alert('No QR Code content to copy!');
+    logMessage('No QR Code content to copy.', 'warning');
   }
 }
 
@@ -92,11 +132,12 @@ function initializeScanner() {
     (decodedText) => {
       remoteSDPInput.value = decodedText;
       html5QrCode.stop();
+      logMessage('QR Code scanned successfully.');
     },
     (errorMessage) => {
-      console.warn(errorMessage);
+      logMessage('QR Code scanning error: ' + errorMessage, 'warning');
     }
-  ).catch(console.error);
+  ).catch((error) => logMessage('Error initializing scanner: ' + error.message, 'error'));
 }
 
 // Event Listeners
