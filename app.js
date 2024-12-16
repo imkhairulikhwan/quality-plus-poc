@@ -206,21 +206,28 @@ function initializeScanner() {
   html5QrCode = new Html5Qrcode('videoScan');
 }
 
-function startQrScanner() {
-  // Display the video scan div
-  videoScanDiv.style.display = 'block';
+const stopScannerBtn = document.getElementById('stopScanner');
 
-  // Start the QR scanner
+function stopQrScanner() {
+  html5QrCode.stop().then(() => {
+    videoScanDiv.style.display = 'none';
+    stopScannerBtn.style.display = 'none';
+    logMessage('QR Code scanning stopped.', 'info');
+  }).catch((error) => logMessage(`Error stopping scanner: ${error.message}`, 'error'));
+}
+
+stopScannerBtn.addEventListener('click', stopQrScanner);
+
+function startQrScanner() {
+  videoScanDiv.style.display = 'block';
+  stopScannerBtn.style.display = 'inline-block';
+
   html5QrCode.start(
     { facingMode: 'environment' },
-    {
-      fps: 10, // Frames per second
-      qrbox: { width: 250, height: 250 } // Size of the scanning box
-    },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
     (decodedText) => {
-      remoteSDPInput.value = decodedText; // Set the scanned QR code content in the input
-      html5QrCode.stop();
-      videoScanDiv.style.display = 'none'; // Hide the scanner after successful scan
+      remoteSDPInput.value = decodedText;
+      stopQrScanner(); // Stop the scanner after successful scan
       logMessage('QR Code scanned successfully.', 'info');
     },
     (errorMessage) => {
