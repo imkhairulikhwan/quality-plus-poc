@@ -7,6 +7,7 @@ const sendMessageBtn = document.getElementById('sendMessage');
 const messageInput = document.getElementById('messageInput');
 const receivedMessage = document.getElementById('receivedMessage');
 const videoScan = document.getElementById('videoScan');
+const copyQrCodeContentBtn = document.getElementById('copyQrCodeContent');
 
 let peerConnection;
 let dataChannel;
@@ -27,7 +28,10 @@ async function createOffer() {
 
   // Generate the QR Code
   QRCode.toCanvas(qrCodeCanvas, offerSDP, (err) => {
-    if (err) console.error(err);
+    if (err) {
+      console.error(err);
+      return;
+    }
     console.log('QR Code generated');
   });
 
@@ -57,8 +61,25 @@ async function handleRemoteSDP(remoteSDP) {
 function sendMessage() {
   if (dataChannel && dataChannel.readyState === 'open') {
     dataChannel.send(messageInput.value);
+    messageInput.value = ''; // Clear the input field after sending
   } else {
     console.error('Data channel is not open');
+  }
+}
+
+// Function to copy QR Code content to clipboard
+function copyQrCodeContent() {
+  if (qrCodeContent.value) {
+    navigator.clipboard.writeText(qrCodeContent.value)
+      .then(() => {
+        console.log('QR code content copied to clipboard');
+        alert('QR Code content copied to clipboard!');
+      })
+      .catch((err) => {
+        console.error('Failed to copy QR code content: ', err);
+      });
+  } else {
+    alert('No QR Code content to copy!');
   }
 }
 
@@ -78,29 +99,9 @@ function initializeScanner() {
   ).catch(console.error);
 }
 
-// Function to copy QR Code content to clipboard
-function copyQrCodeContent() {
-  const qrCodeContent = document.getElementById('qrCodeContent');
-  if (qrCodeContent.value) {
-    navigator.clipboard.writeText(qrCodeContent.value)
-      .then(() => {
-        console.log('QR code content copied to clipboard');
-        alert('QR Code content copied to clipboard!');
-      })
-      .catch((err) => {
-        console.error('Failed to copy QR code content: ', err);
-      });
-  } else {
-    alert('No QR Code content to copy!');
-  }
-}
-
-// Add an event listener to the copy button
-const copyQrCodeContentBtn = document.getElementById('copyQrCodeContent');
-copyQrCodeContentBtn.addEventListener('click', copyQrCodeContent);
-
 // Event Listeners
 createOfferBtn.addEventListener('click', createOffer);
 connectBtn.addEventListener('click', () => handleRemoteSDP(remoteSDPInput.value));
 sendMessageBtn.addEventListener('click', sendMessage);
+copyQrCodeContentBtn.addEventListener('click', copyQrCodeContent);
 initializeScanner();
