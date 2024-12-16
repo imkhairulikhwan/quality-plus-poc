@@ -19,6 +19,12 @@ const CHUNK_SIZE = 16 * 1024;
 let receiveBuffer = [];
 let receivedSize = 0;
 
+document.getElementById('copyQrCodeContent').addEventListener('click', () => {
+  navigator.clipboard.writeText(qrCodeContent.textContent)
+    .then(() => logMessage('QR code content copied to clipboard!', 'info'))
+    .catch((err) => logMessage('Failed to copy QR code content: ' + err.message, 'error'));
+});
+
 // Utility function to log messages
 function logMessage(message, type = 'info') {
   const logEntry = document.createElement('p');
@@ -67,7 +73,10 @@ async function createOffer() {
 
     const offerSDP = JSON.stringify(peerConnection.localDescription);
 
-    QRCode.toCanvas(qrCodeCanvas, offerSDP, (err) => {
+    QRCode.toCanvas(qrCodeCanvas, offerSDP, {
+      width: 300, // Adjust size for better scanning
+      errorCorrectionLevel: 'H' // High error correction
+    }, (err) => {
       if (err) {
         logMessage('Failed to generate QR Code: ' + err.message, 'error');
       } else {
@@ -75,6 +84,7 @@ async function createOffer() {
         qrCodeContent.textContent = offerSDP;
       }
     });
+    
   } catch (error) {
     logMessage('Error creating WebRTC offer: ' + error.message, 'error');
   }
@@ -189,9 +199,14 @@ function handleIncomingFileChunk(event) {
 // Initialize QR Code scanner
 function initializeScanner() {
   const html5QrCode = new Html5Qrcode('videoScan');
+
   html5QrCode.start(
     { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 250, height: 250 } },
+    {
+      fps: 10, // Higher frames per second for faster detection
+      qrbox: { width: 300, height: 300 }, // Larger scanning box
+      disableFlip: true // Disable flipping for better results
+    },
     (decodedText) => {
       remoteSDPInput.value = decodedText;
       html5QrCode.stop();
@@ -202,6 +217,7 @@ function initializeScanner() {
     }
   ).catch((error) => logMessage(`Error initializing scanner: ${error.message}`, 'error'));
 }
+
 
 // Event Listeners
 createOfferBtn.addEventListener('click', createOffer);
