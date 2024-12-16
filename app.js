@@ -20,29 +20,74 @@ let receivedSize = 0;
 const qrCodeContent = document.getElementById('qrCodeContent'); // Add this element in your HTML
 
 async function createOffer() {
-  peerConnection = new RTCPeerConnection(config);
-  dataChannel = peerConnection.createDataChannel('file');
-  dataChannel.onmessage = handleIncomingFileChunk;
+  try {
+    peerConnection = new RTCPeerConnection(config);
+    // Attach the ICE connection state change listener
+    peerConnection.oniceconnectionstatechange = () => {
+      const state = peerConnection.iceConnectionState;
+      logMessage(`ICE connection state changed: ${state}`);
 
-  const offer = await peerConnection.createOffer();
-  await peerConnection.setLocalDescription(offer);
+      if (state === 'failed') {
+        logMessage('ICE connection failed. Please check your network.', 'error');
+      }
+    };
 
-  const offerSDP = JSON.stringify(peerConnection.localDescription);
+    dataChannel = peerConnection.createDataChannel('file');
+    dataChannel.onmessage = handleIncomingFileChunk;
 
-  // Generate the QR Code
-  QRCode.toCanvas(qrCodeCanvas, offerSDP, (err) => {
-    if (err) console.error(err);
-    console.log('QR Code generated');
-  });
+    const offer = await peerConnection.createOffer();
+    await peerConnection.setLocalDescription(offer);
 
-  // Display the QR code content
-  qrCodeContent.textContent = offerSDP;
+    const offerSDP = JSON.stringify(peerConnection.localDescription);
+
+    // Generate the QR Code
+    QRCode.toCanvas(qrCodeCanvas, offerSDP, (err) => {
+      if (err) {
+        logMessage('Failed to generate QR Code: ' + err.message, 'error');
+        console.error(err);
+      } else {
+        logMessage('QR Code generated successfully', 'info');
+        qrCodeContent.textContent = offerSDP;
+      }
+    });
+  } catch (error) {
+    logMessage('Error creating WebRTC offer: ' + error.message, 'error');
+    console.error(error);
+  }
+}
+
+const logContainer = document.getElementById('logContainer');
+const logContent = document.getElementById('logContent');
+
+function logMessage(message, type = 'info') {
+  const logEntry = document.createElement('p');
+  logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+  
+  // Style logs based on type (info, error, warning)
+  if (type === 'error') {
+    logEntry.style.color = 'red';
+  } else if (type === 'warning') {
+    logEntry.style.color = 'orange';
+  }
+
+  logContent.appendChild(logEntry);
+  logContainer.scrollTop = logContainer.scrollHeight; // Auto-scroll to the bottom
 }
 
 
 // Handle incoming SDP from QR code or input
 async function handleRemoteSDP(remoteSDP) {
   peerConnection = new RTCPeerConnection(config);
+  // Attach the ICE connection state change listener
+  peerConnection.oniceconnectionstatechange = () => {
+    const state = peerConnection.iceConnectionState;
+    logMessage(`ICE connection state changed: ${state}`);
+
+    if (state === 'failed') {
+      logMessage('ICE connection failed. Please check your network.', 'error');
+    }
+  };
+  
   peerConnection.ondatachannel = (event) => {
     dataChannel = event.channel;
     dataChannel.onmessage = handleIncomingFileChunk;
@@ -61,7 +106,7 @@ async function handleRemoteSDP(remoteSDP) {
 function sendFile() {
   const file = fileInput.files[0];
   if (!file) {
-    console.error('No file selected');
+    logMessage('No file selected', 'error');
     return;
   }
 
@@ -73,10 +118,12 @@ function sendFile() {
     dataChannel.send(chunk);
 
     offset += chunk.byteLength;
+    logMessage(`Sent chunk: ${offset}/${file.size} bytes`);
+
     if (offset < file.size) {
       readSlice(offset);
     } else {
-      console.log('File sent successfully');
+      logMessage('File sent successfully', 'info');
     }
   };
 
