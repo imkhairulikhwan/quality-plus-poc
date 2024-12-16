@@ -197,19 +197,30 @@ function handleIncomingFileChunk(event) {
 }
 
 // Initialize QR Code scanner
-function initializeScanner() {
-  const html5QrCode = new Html5Qrcode('videoScan');
+const startScannerBtn = document.getElementById('startScanner');
+const videoScanDiv = document.getElementById('videoScan');
+let html5QrCode;
 
+function initializeScanner() {
+  // Initialize the QR code scanner but do not start scanning immediately
+  html5QrCode = new Html5Qrcode('videoScan');
+}
+
+function startQrScanner() {
+  // Display the video scan div
+  videoScanDiv.style.display = 'block';
+
+  // Start the QR scanner
   html5QrCode.start(
     { facingMode: 'environment' },
     {
-      fps: 10, // Higher frames per second for faster detection
-      qrbox: { width: 300, height: 300 }, // Larger scanning box
-      disableFlip: true // Disable flipping for better results
+      fps: 10, // Frames per second
+      qrbox: { width: 250, height: 250 } // Size of the scanning box
     },
     (decodedText) => {
-      remoteSDPInput.value = decodedText;
+      remoteSDPInput.value = decodedText; // Set the scanned QR code content in the input
       html5QrCode.stop();
+      videoScanDiv.style.display = 'none'; // Hide the scanner after successful scan
       logMessage('QR Code scanned successfully.', 'info');
     },
     (errorMessage) => {
@@ -218,8 +229,8 @@ function initializeScanner() {
   ).catch((error) => logMessage(`Error initializing scanner: ${error.message}`, 'error'));
 }
 
-
 // Event Listeners
+startScannerBtn.addEventListener('click', startQrScanner);
 createOfferBtn.addEventListener('click', createOffer);
 connectBtn.addEventListener('click', () => handleRemoteSDP(remoteSDPInput.value));
 sendFileBtn.addEventListener('click', sendFile);
