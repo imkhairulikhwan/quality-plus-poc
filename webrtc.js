@@ -1,10 +1,12 @@
 
 // WebRTC logic for offer creation and handling SDP
+const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
 async function createOffer() {
   try {
+    console.log('Creating WebRTC offer with config:', config); // Debug log
     peerConnection = new RTCPeerConnection(config);
 
-    // Attach ICE connection state listener
     peerConnection.oniceconnectionstatechange = () => {
       const state = peerConnection.iceConnectionState;
       logMessage(`ICE connection state changed: ${state}`);
@@ -14,17 +16,9 @@ async function createOffer() {
     };
 
     dataChannel = peerConnection.createDataChannel('file');
-    dataChannel.onopen = () => {
-      logMessage('DataChannel is open. Ready to send files!', 'info');
-      isDataChannelOpen = true;
-    };
-    dataChannel.onclose = () => {
-      logMessage('DataChannel is closed.', 'warning');
-      isDataChannelOpen = false;
-    };
-    dataChannel.onerror = (error) => {
-      logMessage(`DataChannel error: ${error.message}`, 'error');
-    };
+    dataChannel.onopen = () => logMessage('DataChannel is open. Ready to send files!', 'info');
+    dataChannel.onclose = () => logMessage('DataChannel is closed.', 'warning');
+    dataChannel.onerror = (error) => logMessage(`DataChannel error: ${error.message}`, 'error');
     dataChannel.onmessage = handleIncomingFileChunk;
 
     const offer = await peerConnection.createOffer();
@@ -32,10 +26,7 @@ async function createOffer() {
 
     const offerSDP = JSON.stringify(peerConnection.localDescription);
 
-    QRCode.toCanvas(qrCodeCanvas, offerSDP, {
-      width: 300,
-      errorCorrectionLevel: 'H'
-    }, (err) => {
+    QRCode.toCanvas(qrCodeCanvas, offerSDP, { width: 300, errorCorrectionLevel: 'H' }, (err) => {
       if (err) {
         logMessage('Failed to generate QR Code: ' + err.message, 'error');
       } else {

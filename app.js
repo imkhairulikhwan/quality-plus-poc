@@ -1,3 +1,5 @@
+const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+
 document.addEventListener('DOMContentLoaded', () => {
   // DOM Elements
   const qrCodeCanvas = document.getElementById('qrCode');
@@ -20,7 +22,6 @@ document.addEventListener('DOMContentLoaded', () => {
   let peerConnection;
   let dataChannel;
   let html5QrCode; // QR Code Scanner instance
-  const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
   const CHUNK_SIZE = 16 * 1024;
   let receiveBuffer = [];
   let receivedSize = 0;
