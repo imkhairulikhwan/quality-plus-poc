@@ -1,95 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WebRTC File Transfer (PWA)</title>
-  <link rel="manifest" href="manifest.json">
+  <title>WebRTC with QR Code</title>
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 20px;
-    }
-    #qrCode {
-      margin: 10px 0;
-    }
-    #videoScan {
-      width: 300px;
-      height: 300px;
-      border: 1px solid #ccc;
-      margin-top: 10px;
-      display: none;
-    }
-    #logContainer {
-      border: 1px solid #ccc;
-      padding: 10px;
-      height: 150px;
-      overflow-y: auto;
-      background-color: #f9f9f9;
-      margin-top: 10px;
-    }
-    #logContainer p {
-      margin: 0;
-    }
-    #startScanner img {
-      cursor: pointer;
-      width: 40px;
-      height: 40px;
-      transition: transform 0.2s;
-    }
-    #startScanner img:hover {
-      transform: scale(1.1);
-    }
+    #qrCode, #videoScan { margin: 10px 0; }
   </style>
 </head>
 <body>
-  <h1>WebRTC File Transfer (PWA)</h1>
-
+  <h1>WebRTC with QR Code</h1>
   <div>
     <h3>Create Connection</h3>
     <button id="createOffer">Generate QR Code</button>
     <canvas id="qrCode"></canvas>
-    <p id="qrCodeContent" style="word-wrap: break-word; max-width: 300px; border: 1px solid #ccc; padding: 5px;"></p>
-    <button id="copyQrCodeContent">Copy QR Code Content</button>
   </div>
-
   <div>
     <h3>Scan Connection</h3>
-    <button id="startScanner">
-      <img src="scanner-icon.png" alt="Scan QR Code">
-    </button>
-    <div id="videoScan"></div>
-  </div>
-
-  <div>
-    <h3>Connect Using String</h3>
-    <textarea id="manualSDPInput" placeholder="Paste QR code content here..." style="width: 100%; height: 100px;"></textarea>
-    <button id="connectUsingString">Connect Using QR Code String</button>
+    <div id="videoScan" style="width: 300px; height: 300px;"></div>
+    <input type="text" id="remoteSDP" placeholder="Or paste QR code content">
     <button id="connect">Connect</button>
   </div>
-
   <div>
-    <h3>File Transfer</h3>
-    <input type="file" id="fileInput">
-    <button id="sendFile">Send File</button>
-    <h4>Received File:</h4>
-    <a id="downloadLink" style="display:none;">Download File</a>
+    <h3>Data Transfer</h3>
+    <textarea id="messageInput" placeholder="Type a message"></textarea>
+    <button id="sendMessage">Send</button>
+    <h4>Received:</h4>
+    <p id="receivedMessage"></p>
   </div>
-
-  <div>
-    <h3>Logs</h3>
-    <div id="logContainer">
-      <p id="logContent">No logs yet...</p>
-    </div>
-  </div>
-
-  <!-- Include the split JavaScript files -->
-  <script src="utils.js"></script>
-  <script src="webrtc.js"></script>
-  <script src="file_transfer.js"></script>
-  <script src="scanner.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
