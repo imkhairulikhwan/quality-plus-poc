@@ -14,9 +14,13 @@ const logContent = document.getElementById('logContent');
 let peerConnection;
 let dataChannel;
 const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
+let lastLoggedMessage = ''; // For rate-limiting log messages
 
 // Utility: Log messages to the interface
 function logMessage(message, type = 'info') {
+  if (message === lastLoggedMessage) return; // Avoid duplicate log messages
+  lastLoggedMessage = message;
+
   const logEntry = document.createElement('p');
   logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
 
@@ -34,14 +38,15 @@ async function createOffer() {
     peerConnection = new RTCPeerConnection(config);
     dataChannel = peerConnection.createDataChannel('chat');
 
-    // Log data channel events
     dataChannel.onopen = () => {
       logMessage('Data channel is open.');
-      sendMessageBtn.disabled = false; // Enable Send button
+      sendMessageBtn.disabled = false;
+      sendMessageBtn.style.backgroundColor = '#4CAF50'; // Green for ready
     };
     dataChannel.onclose = () => {
       logMessage('Data channel is closed.', 'warning');
-      sendMessageBtn.disabled = true; // Disable Send button
+      sendMessageBtn.disabled = true;
+      sendMessageBtn.style.backgroundColor = '#d9534f'; // Red for closed
     };
 
     const offer = await peerConnection.createOffer();
@@ -49,7 +54,6 @@ async function createOffer() {
 
     const offerSDP = JSON.stringify(peerConnection.localDescription);
 
-    // Generate the QR Code
     QRCode.toCanvas(qrCodeCanvas, offerSDP, (err) => {
       if (err) {
         logMessage('Failed to generate QR Code: ' + err.message, 'error');
@@ -58,29 +62,28 @@ async function createOffer() {
       logMessage('QR Code generated successfully.');
     });
 
-    // Display the QR code content as a string
     qrCodeContent.value = offerSDP;
   } catch (error) {
     logMessage('Error creating WebRTC offer: ' + error.message, 'error');
   }
 }
 
-// Handle remote SDP (from scanned QR code or input)
+// Handle remote SDP
 async function handleRemoteSDP(remoteSDP) {
   try {
     peerConnection = new RTCPeerConnection(config);
-
-    // Listen for data channel creation
     peerConnection.ondatachannel = (event) => {
       dataChannel = event.channel;
 
       dataChannel.onopen = () => {
         logMessage('Data channel is open.');
-        sendMessageBtn.disabled = false; // Enable Send button
+        sendMessageBtn.disabled = false;
+        sendMessageBtn.style.backgroundColor = '#4CAF50';
       };
       dataChannel.onclose = () => {
         logMessage('Data channel is closed.', 'warning');
-        sendMessageBtn.disabled = true; // Disable Send button
+        sendMessageBtn.disabled = true;
+        sendMessageBtn.style.backgroundColor = '#d9534f';
       };
 
       dataChannel.onmessage = (event) => {
@@ -101,28 +104,6 @@ async function handleRemoteSDP(remoteSDP) {
   }
 }
 
-// Send a message via the data channel
-function sendMessage() {
-  if (dataChannel && dataChannel.readyState === 'open') {
-    dataChannel.send(messageInput.value);
-    logMessage('Message sent: ' + messageInput.value);
-    messageInput.value = ''; // Clear the input field after sending
-  } else {
-    logMessage('Data channel is not open yet.', 'error');
-  }
-}
-
-// Copy QR Code content to clipboard
-function copyQrCodeContent() {
-  if (qrCodeContent.value) {
-    navigator.clipboard.writeText(qrCodeContent.value)
-      .then(() => logMessage('QR code content copied to clipboard.'))
-      .catch((err) => logMessage('Failed to copy QR code content: ' + err.message, 'error'));
-  } else {
-    logMessage('No QR Code content to copy.', 'warning');
-  }
-}
-
 // Initialize QR Code scanner
 function initializeScanner() {
   const html5QrCode = new Html5Qrcode('videoScan');
@@ -131,8 +112,8 @@ function initializeScanner() {
   html5QrCode.start(
     { facingMode: 'environment' },
     {
-      fps: 5, // Reduce scanning frequency
-      qrbox: { width: 250, height: 250 } // Define scanning area
+      fps: 5,
+      qrbox: { width: 250, height: 250 }
     },
     (decodedText) => {
       remoteSDPInput.value = decodedText;
@@ -140,13 +121,34 @@ function initializeScanner() {
       logMessage('QR Code scanned successfully.');
     },
     (errorMessage) => {
-      // Suppress repetitive error messages
       if (errorMessage !== lastErrorMessage) {
         logMessage('QR Code scanning error: ' + errorMessage, 'warning');
         lastErrorMessage = errorMessage;
       }
     }
   ).catch((error) => logMessage('Error initializing scanner: ' + error.message, 'error'));
+}
+
+// Send a message
+function sendMessage() {
+  if (dataChannel && dataChannel.readyState === 'open') {
+    dataChannel.send(messageInput.value);
+    logMessage('Message sent: ' + messageInput.value);
+    messageInput.value = '';
+  } else {
+    logMessage('Data channel is not open yet.', 'error');
+  }
+}
+
+// Copy QR Code content
+function copyQrCodeContent() {
+  if (qrCodeContent.value) {
+    navigator.clipboard.writeText(qrCodeContent.value)
+      .then(() => logMessage('QR code content copied to clipboard.'))
+      .catch((err) => logMessage('Failed to copy QR code content: ' + err.message, 'error'));
+  } else {
+    logMessage('No QR Code content to copy.', 'warning');
+  }
 }
 
 // Event Listeners
