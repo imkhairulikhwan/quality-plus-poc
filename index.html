@@ -33,7 +33,10 @@
 
   <div>
     <h3>Scan Connection</h3>
-    <div id="videoScan" style="width: 300px; height: 300px;"></div>
+    <div id="videoScan" style="position: relative; width: 300px; height: 300px;">
+      <div style="position: absolute; top: 50%; left: 50%; width: 250px; height: 250px; border: 2px solid red; transform: translate(-50%, -50%);"></div>
+    </div>
+    
     <input type="text" id="remoteSDP" placeholder="Or paste QR code content">
     <button id="connect">Connect</button>
   </div>

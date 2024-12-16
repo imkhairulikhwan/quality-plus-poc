@@ -126,16 +126,25 @@ function copyQrCodeContent() {
 // Initialize QR Code scanner
 function initializeScanner() {
   const html5QrCode = new Html5Qrcode('videoScan');
+  let lastErrorMessage = '';
+
   html5QrCode.start(
     { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 250, height: 250 } },
+    {
+      fps: 5, // Reduce scanning frequency
+      qrbox: { width: 250, height: 250 } // Define scanning area
+    },
     (decodedText) => {
       remoteSDPInput.value = decodedText;
       html5QrCode.stop();
       logMessage('QR Code scanned successfully.');
     },
     (errorMessage) => {
-      logMessage('QR Code scanning error: ' + errorMessage, 'warning');
+      // Suppress repetitive error messages
+      if (errorMessage !== lastErrorMessage) {
+        logMessage('QR Code scanning error: ' + errorMessage, 'warning');
+        lastErrorMessage = errorMessage;
+      }
     }
   ).catch((error) => logMessage('Error initializing scanner: ' + error.message, 'error'));
 }
