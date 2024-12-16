@@ -1,34 +1,74 @@
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WebRTC File Transfer (PWA)</title>
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode/minified/html5-qrcode.min.js"></script>
   <style>
-    #qrCode, #videoScan { margin: 10px 0; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    #qrCode {
+      margin: 10px 0;
+    }
+    #videoScan {
+      width: 300px;
+      height: 300px;
+      border: 1px solid #ccc;
+      margin-top: 10px;
+      display: none;
+    }
+    #logContainer {
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 150px;
+      overflow-y: auto;
+      background-color: #f9f9f9;
+      margin-top: 10px;
+    }
+    #logContainer p {
+      margin: 0;
+    }
+    #startScanner img {
+      cursor: pointer;
+      width: 40px;
+      height: 40px;
+      transition: transform 0.2s;
+    }
+    #startScanner img:hover {
+      transform: scale(1.1);
+    }
   </style>
 </head>
 <body>
-  <h1>WebRTC File Transfer (PWA)</h1>  
+  <h1>WebRTC File Transfer (PWA)</h1>
+
   <div>
     <h3>Create Connection</h3>
     <button id="createOffer">Generate QR Code</button>
     <canvas id="qrCode"></canvas>
     <p id="qrCodeContent" style="word-wrap: break-word; max-width: 300px; border: 1px solid #ccc; padding: 5px;"></p>
+    <button id="copyQrCodeContent">Copy QR Code Content</button>
   </div>
-  <button id="copyQrCodeContent">Copy QR Code Content</button>
-  
+
   <div>
     <h3>Scan Connection</h3>
     <button id="startScanner">
-      <img src="camera.png" alt="Scan QR Code" style="width: 40px; height: 40px;">
+      <img src="scanner-icon.png" alt="Scan QR Code">
     </button>
-    <button id="stopScanner" style="display: none;">Cancel</button>
-    <div id="videoScan" style="width: 300px; height: 300px; display: none; margin-top: 10px;"></div>
+    <div id="videoScan"></div>
   </div>
-  
+
+  <div>
+    <h3>Connect Using String</h3>
+    <textarea id="manualSDPInput" placeholder="Paste QR code content here..." style="width: 100%; height: 100px;"></textarea>
+    <button id="connectUsingString">Connect Using QR Code String</button>
+  </div>
+
   <div>
     <h3>File Transfer</h3>
     <input type="file" id="fileInput">
@@ -36,13 +76,27 @@
     <h4>Received File:</h4>
     <a id="downloadLink" style="display:none;">Download File</a>
   </div>
+
   <div>
     <h3>Logs</h3>
-    <div id="logContainer" style="border: 1px solid #ccc; padding: 10px; height: 150px; overflow-y: auto; background-color: #f9f9f9;">
+    <div id="logContainer">
       <p id="logContent">No logs yet...</p>
     </div>
   </div>
-  
+
+  <script>
+    document.getElementById('copyQrCodeContent').addEventListener('click', () => {
+      const qrCodeContent = document.getElementById('qrCodeContent').textContent;
+      if (qrCodeContent) {
+        navigator.clipboard.writeText(qrCodeContent)
+          .then(() => alert('QR code content copied to clipboard!'))
+          .catch(err => alert('Failed to copy QR code content: ' + err));
+      } else {
+        alert('No QR code content to copy.');
+      }
+    });
+  </script>
+
   <script src="app.js"></script>
 </body>
 </html>

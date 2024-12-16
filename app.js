@@ -5,7 +5,10 @@ const connectBtn = document.getElementById('connect');
 const sendFileBtn = document.getElementById('sendFile');
 const fileInput = document.getElementById('fileInput');
 const downloadLink = document.getElementById('downloadLink');
-const videoScan = document.getElementById('videoScan');
+const videoScanDiv = document.getElementById('videoScan');
+const startScannerBtn = document.getElementById('startScanner');
+const manualSDPInput = document.getElementById('manualSDPInput');
+const connectUsingStringBtn = document.getElementById('connectUsingString');
 const qrCodeContent = document.getElementById('qrCodeContent');
 const logContainer = document.getElementById('logContainer');
 const logContent = document.getElementById('logContent');
@@ -13,17 +16,12 @@ const logContent = document.getElementById('logContent');
 let isDataChannelOpen = false;
 let peerConnection;
 let dataChannel;
+let html5QrCode; // Initialize globally
 const config = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
 const CHUNK_SIZE = 16 * 1024;
 let receiveBuffer = [];
 let receivedSize = 0;
-
-document.getElementById('copyQrCodeContent').addEventListener('click', () => {
-  navigator.clipboard.writeText(qrCodeContent.textContent)
-    .then(() => logMessage('QR code content copied to clipboard!', 'info'))
-    .catch((err) => logMessage('Failed to copy QR code content: ' + err.message, 'error'));
-});
 
 // Utility function to log messages
 function logMessage(message, type = 'info') {
@@ -74,8 +72,8 @@ async function createOffer() {
     const offerSDP = JSON.stringify(peerConnection.localDescription);
 
     QRCode.toCanvas(qrCodeCanvas, offerSDP, {
-      width: 300, // Adjust size for better scanning
-      errorCorrectionLevel: 'H' // High error correction
+      width: 300,
+      errorCorrectionLevel: 'H'
     }, (err) => {
       if (err) {
         logMessage('Failed to generate QR Code: ' + err.message, 'error');
@@ -84,7 +82,6 @@ async function createOffer() {
         qrCodeContent.textContent = offerSDP;
       }
     });
-    
   } catch (error) {
     logMessage('Error creating WebRTC offer: ' + error.message, 'error');
   }
@@ -197,37 +194,29 @@ function handleIncomingFileChunk(event) {
 }
 
 // Initialize QR Code scanner
-const startScannerBtn = document.getElementById('startScanner');
-const videoScanDiv = document.getElementById('videoScan');
-let html5QrCode;
-
 function initializeScanner() {
-  // Initialize the QR code scanner but do not start scanning immediately
   html5QrCode = new Html5Qrcode('videoScan');
 }
 
-const stopScannerBtn = document.getElementById('stopScanner');
-
-function stopQrScanner() {
-  html5QrCode.stop().then(() => {
-    videoScanDiv.style.display = 'none';
-    stopScannerBtn.style.display = 'none';
-    logMessage('QR Code scanning stopped.', 'info');
-  }).catch((error) => logMessage(`Error stopping scanner: ${error.message}`, 'error'));
-}
-
-stopScannerBtn.addEventListener('click', stopQrScanner);
-
 function startQrScanner() {
+  if (!html5QrCode) {
+    logMessage('QR Code scanner is not initialized.', 'error');
+    return;
+  }
+
   videoScanDiv.style.display = 'block';
-  stopScannerBtn.style.display = 'inline-block';
 
   html5QrCode.start(
     { facingMode: 'environment' },
-    { fps: 10, qrbox: { width: 250, height: 250 } },
+    {
+      fps: 10,
+      qrbox: { width: 250, height: 250 },
+      disableFlip: true
+    },
     (decodedText) => {
       remoteSDPInput.value = decodedText;
-      stopQrScanner(); // Stop the scanner after successful scan
+      html5QrCode.stop();
+      videoScanDiv.style.display = 'none';
       logMessage('QR Code scanned successfully.', 'info');
     },
     (errorMessage) => {
@@ -236,8 +225,22 @@ function startQrScanner() {
   ).catch((error) => logMessage(`Error initializing scanner: ${error.message}`, 'error'));
 }
 
-// Event Listeners
 startScannerBtn.addEventListener('click', startQrScanner);
+connectUsingStringBtn.addEventListener('click', () => {
+  const qrCodeString = manualSDPInput.value.trim();
+  if (!qrCodeString) {
+    logMessage('Please enter a valid QR code string.', 'error');
+    return;
+  }
+  try {
+    handleRemoteSDP(qrCodeString);
+    logMessage('Successfully connected using QR code string.', 'info');
+  } catch (error) {
+    logMessage(`Error connecting with QR code string: ${error.message}`, 'error');
+  }
+});
+
+// Event Listeners
 createOfferBtn.addEventListener('click', createOffer);
 connectBtn.addEventListener('click', () => handleRemoteSDP(remoteSDPInput.value));
 sendFileBtn.addEventListener('click', sendFile);
